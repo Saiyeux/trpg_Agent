@@ -1,0 +1,49 @@
+{
+  "api": {
+    "type": "ollama",
+    "comment": "可选: ollama 或 lm_studio"
+  },
+  
+  "ollama": {
+    "base_url": "http://localhost:11434/api/generate",
+    "model": "qwen2.5:3b",
+    "context_limit": 32000,
+    "available_models": [
+      "qwen2.5:3b",
+      "qwen2.5:7b",
+      "qwen2.5:14b",
+      "llama3.1:8b",
+      "gemma2:9b",
+      "deepseek-coder:6.7b"
+    ]
+  },
+  
+  "lm_studio": {
+    "base_url": "http://localhost:1234/v1/chat/completions",
+    "model": "current_loaded",
+    "context_limit": 128000,
+    "note": "模型名称无关紧要，LM Studio自动使用当前加载的模型",
+    "recommended_models": [
+      "hermes-3-llama-3.1-8b",
+      "hermes-3-llama-3.1-70b", 
+      "nous-hermes-2-mixtral-8x7b",
+      "qwen2.5-coder-32b-instruct",
+      "deepseek-coder-v2-lite-instruct",
+      "codestral-22b-v0.1"
+    ]
+  },
+  
+  "game": {
+    "context_history_limit": 3,
+    "auto_adjust_context": true,
+    "max_turns": 1000,
+    "auto_save_interval": 50
+  },
+  
+  "logging": {
+    "log_file": "logs/trpg_game.log",
+    "log_level": "INFO",
+    "enable_console_output": true,
+    "max_log_size_mb": 100
+  }
+}
