@@ -16,10 +16,14 @@ dependencies:
   # - jupyter
   # - ipykernel
   
-  # Pip-only dependencies (when RAG functionality is added)
+  # Additional scientific computing dependencies for RAG
+  - numpy>=1.24.0
+  
+  # Pip-only dependencies (RAG functionality)
   - pip:
-    # Uncomment when implementing RAG features:
-    # - lightrag>=0.1.0
+    - lightrag-hku
+    - ollama
+    # Optional alternatives:
     # - chromadb>=0.4.0
     # - sentence-transformers>=2.2.0
     

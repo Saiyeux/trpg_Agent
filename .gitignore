@@ -51,5 +51,6 @@ Thumbs.db
 .cache/
 .claude/
 
+storage
 # Configuration (optional - remove if you want to track config)
 # config/game_config.json

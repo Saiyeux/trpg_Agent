@@ -49,7 +49,7 @@ class ModelClient:
         # 验证配置
         self._validate_config()
         
-    def generate_scene(self, context_history: List[Dict], player_name: str, turn_count: int) -> str:
+    def generate_scene(self, context_history: List[Dict], player_name: str, turn_count: int, rag_context: str = "") -> str:
         """
         生成游戏场景描述
         
@@ -57,6 +57,7 @@ class ModelClient:
             context_history: 游戏历史上下文
             player_name: 玩家角色名
             turn_count: 当前回合数
+            rag_context: RAG增强上下文（可选）
             
         Returns:
             生成的场景描述文本
@@ -66,14 +67,23 @@ class ModelClient:
         # 构建场景生成的prompt
         context_text = self._format_history_context(context_history)
         
+        # 构建增强的prompt
+        rag_section = ""
+        if rag_context:
+            rag_section = f"""
+长期记忆:
+{rag_context}
+"""
+        
         prompt = f"""你是一个TRPG城主，负责描述游戏场景和推进故事。
 当前回合: {turn_count}
 玩家: {player_name or "冒险者"}
 
 历史记录:
-{context_text}
+{context_text}{rag_section}
 
-请生成一个生动的场景描述，包含环境、氛围和可能的选择。保持在100-200字。"""
+请根据历史记录和长期记忆生成一个生动的场景描述，包含环境、氛围和可能的选择。
+注意要给出玩家行动的具体结果，不要只描述氛围。保持在100-200字。"""
 
         return self._make_request(prompt, "场景生成")
         

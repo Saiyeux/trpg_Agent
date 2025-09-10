@@ -2,11 +2,15 @@
 # Core HTTP client for AI model communication
 requests>=2.31.0
 
+# RAG functionality dependencies
+lightrag-hku           # LightRAG for knowledge graph RAG (HKU version)
+numpy>=1.24.0          # Required by LightRAG
+ollama                 # For local LLM integration with LightRAG
+
 # Development and optional dependencies
 # For future extensions (uncomment as needed):
-# lightrag>=0.1.0        # For RAG functionality (when implemented)
-# chromadb>=0.4.0        # Vector database for RAG
-# sentence-transformers>=2.2.0  # Text embeddings for RAG
+# chromadb>=0.4.0        # Alternative vector database
+# sentence-transformers>=2.2.0  # Alternative text embeddings
 
 # Note: All other imports are Python standard library modules:
 # - json, os, sys, signal, datetime: Built-in modules

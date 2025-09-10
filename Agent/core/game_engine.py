@@ -76,6 +76,9 @@ class GameEngine:
         # 获取玩家信息
         self._setup_player()
         
+        # 设置RAG会话
+        self._setup_rag_session()
+        
         # 记录游戏开始事件
         self.logger.log_game_event("游戏开始", f"玩家 {self.game_state.player_name} 开始新的冒险")
         
@@ -91,6 +94,7 @@ class GameEngine:
         api_config = self.config.get_api_config()
         game_config = self.config.get_game_config()
         logging_config = self.config.get_logging_config()
+        rag_config = self.config.get_rag_config()
         
         # 初始化核心组件
         self.game_state = GameState()
@@ -110,6 +114,10 @@ class GameEngine:
         
         # 保存配置引用
         self.game_config = game_config
+        self.rag_config = rag_config
+        
+        # 初始化RAG功能
+        self._initialize_rag()
         
     def _setup_player(self) -> None:
         """设置玩家信息"""
@@ -183,6 +191,10 @@ class GameEngine:
                 # 生成新场景
                 self._generate_next_scene()
                 
+                # 存储完整的对话轮次到RAG
+                ai_response = self.game_state.current_scene or "场景生成失败"
+                self._store_conversation_turn(user_input, ai_response)
+                
             except KeyboardInterrupt:
                 # Ctrl+C 被信号处理器捕获，这里不应该到达
                 break
@@ -200,7 +212,21 @@ class GameEngine:
         context_text = "\n".join([f"{entry['type']}: {entry['content']}" for entry in context])
         context_length_k = len(context_text) / 1000
         
-        print(f"\n📍 回合 {self.game_state.turn_count} | 上下文: {context_length_k:.1f}k")
+        # 构建状态信息
+        status_parts = [f"回合 {self.game_state.turn_count}"]
+        status_parts.append(f"即时上下文: {context_length_k:.1f}k")
+        
+        # 添加RAG记忆信息
+        if self.rag_plugin and self.rag_storage_path:
+            try:
+                stats = self.rag_plugin.get_storage_stats(self.rag_storage_path)
+                memory_count = stats.get('total_turns', 0)
+                if memory_count > 0:
+                    status_parts.append(f"🧠 记忆: {memory_count}轮")
+            except:
+                pass
+        
+        print(f"\n📍 {' | '.join(status_parts)}")
         return input("你的行动: ").strip()
         
     def _handle_special_commands(self, user_input: str) -> bool:
@@ -344,11 +370,20 @@ class GameEngine:
                 context_limit=self.ai_client.context_limit
             )
             
+            # 查询RAG增强上下文
+            rag_context = ""
+            if self.rag_plugin and context:
+                # 使用最近的玩家输入查询相关历史
+                last_input = context[-1].get('content', '') if context else ''
+                if last_input:
+                    rag_context = self._query_rag_context(last_input)
+            
             # 生成新场景
             new_scene = self.ai_client.generate_scene(
                 context_history=context,
                 player_name=self.game_state.player_name,
-                turn_count=self.game_state.turn_count
+                turn_count=self.game_state.turn_count,
+                rag_context=rag_context
             )
             
             # 记录日志
@@ -387,8 +422,23 @@ class GameEngine:
         print(f"\n=== 游戏状态 ===")
         print(f"玩家: {game_info['player_name']}")
         print(f"当前回合: {game_info['turn_count']}")
-        print(f"历史记录数: {game_info['history_count']}")
+        print(f"即时历史: {game_info['history_count']} 条")
         print(f"会话时长: {session_info['session_duration']}")
+        
+        # 显示RAG记忆状态
+        if self.rag_plugin and self.rag_storage_path:
+            try:
+                stats = self.rag_plugin.get_storage_stats(self.rag_storage_path)
+                print(f"🧠 长期记忆: {stats.get('total_turns', 0)} 轮对话")
+                storage_mb = stats.get('storage_size', 0) / 1024 / 1024
+                print(f"   存储大小: {storage_mb:.2f} MB")
+                if stats.get('created_at'):
+                    print(f"   创建时间: {stats['created_at'][:19].replace('T', ' ')}")
+            except Exception as e:
+                print(f"🧠 长期记忆: 获取状态失败 ({e})")
+        else:
+            print("🧠 长期记忆: 未启用")
+            
         print("================")
         
     def _signal_handler(self, sig, frame) -> None:
@@ -432,3 +482,99 @@ class GameEngine:
         print("\n感谢游戏！再见！👋")
         
         sys.exit(0)
+        
+    def _initialize_rag(self) -> None:
+        """初始化RAG功能"""
+        self.rag_plugin = None
+        self.rag_storage_path = None
+        
+        # 检查RAG是否启用
+        if not self.rag_config.get('enabled', False):
+            return
+            
+        try:
+            # 导入RAG插件
+            from ..plugins import PluginRegistry
+            from ..plugins.api_memory_plugin import ApiMemoryPlugin
+            
+            # 获取插件
+            plugin_class = PluginRegistry.get_plugin("memory")
+            if plugin_class:
+                self.rag_plugin = plugin_class
+                print("✅ RAG功能已启用")
+            else:
+                print("⚠️  RAG插件未找到，功能将被禁用")
+                
+        except ImportError as e:
+            print(f"⚠️  RAG模块导入失败: {e}")
+            print("   请安装依赖: pip install lightrag-hku")
+        except Exception as e:
+            print(f"⚠️  RAG初始化失败: {e}")
+    
+    def _setup_rag_session(self) -> None:
+        """设置RAG会话存储"""
+        if not self.rag_plugin:
+            return
+            
+        try:
+            # 生成会话存储路径
+            from datetime import datetime
+            session_id = f"trpg_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            base_path = self.rag_config.get('storage_path', 'storage/conversations')
+            self.rag_storage_path = f"{base_path}/{session_id}"
+            
+            # 初始化存储
+            if self.rag_plugin.initialize_storage(self.rag_storage_path):
+                print(f"📁 RAG会话已创建: {session_id}")
+            else:
+                print("⚠️  RAG存储初始化失败")
+                self.rag_plugin = None
+                
+        except Exception as e:
+            print(f"⚠️  RAG会话设置失败: {e}")
+            self.rag_plugin = None
+    
+    def _store_conversation_turn(self, user_input: str, ai_response: str) -> None:
+        """存储对话轮次到RAG"""
+        if not self.rag_plugin or not self.rag_storage_path:
+            return
+            
+        try:
+            from ..interfaces.memory_interface import ConversationTurn
+            from datetime import datetime
+            
+            turn_data = ConversationTurn(
+                user_input=user_input,
+                ai_response=ai_response,
+                turn=self.game_state.turn_count,
+                timestamp=datetime.now().isoformat(),
+                scene=self.game_state.current_scene or "未知场景",
+                metadata={
+                    "player_name": self.game_state.player_name
+                }
+            )
+            
+            self.rag_plugin.store_turn(self.rag_storage_path, turn_data)
+            
+        except Exception as e:
+            print(f"⚠️  RAG存储失败: {e}")
+    
+    def _query_rag_context(self, query: str) -> str:
+        """查询RAG增强上下文"""
+        if not self.rag_plugin or not self.rag_storage_path:
+            return ""
+            
+        try:
+            limit = self.rag_config.get('query_limit', 3)
+            results = self.rag_plugin.query_relevant(self.rag_storage_path, query, limit)
+            
+            if results:
+                context_parts = []
+                for result in results:
+                    context_parts.append(f"相关回忆 (相关度{result.relevance:.1f}): {result.content}")
+                return "\n".join(context_parts)
+            
+        except Exception as e:
+            print(f"⚠️  RAG查询失败: {e}")
+            
+        return ""

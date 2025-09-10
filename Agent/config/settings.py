@@ -87,6 +87,39 @@ class ConfigManager:
         调用时机: 初始化日志系统时
         """
         return self.config.get("logging", self._get_default_logging_config())
+    
+    def get_rag_config(self) -> Dict[str, Any]:
+        """
+        获取RAG相关配置
+        
+        Returns:
+            RAG配置字典
+            
+        调用时机: 初始化RAG系统时
+        """
+        return self.config.get("rag", {
+            "enabled": False,
+            "type": "lightrag", 
+            "storage_path": "storage/conversations",
+            "auto_create_session": True,
+            "query_limit": 3,
+            "context_turns": 5
+        })
+        
+    def set_rag_enabled(self, enabled: bool) -> None:
+        """
+        启用或禁用RAG功能
+        
+        Args:
+            enabled: 是否启用RAG
+            
+        调用时机: 用户切换RAG功能时
+        """
+        if "rag" not in self.config:
+            self.config["rag"] = self.get_rag_config()
+        self.config["rag"]["enabled"] = enabled
+        self._save_config()
+        print(f"RAG功能已{'启用' if enabled else '禁用'}")
         
     def set_api_type(self, api_type: APIType) -> None:
         """
@@ -146,13 +179,23 @@ class ConfigManager:
         print(f"API类型: {api_type.value}")
         print(f"模型: {api_config['model']}")
         print(f"服务地址: {api_config['base_url']}")
-        print(f"上下文限制: {api_config['context_limit']} tokens")
+        print(f"AI上下文限制: {api_config['context_limit']} tokens")
         
         if api_type == APIType.LM_STUDIO:
             print("注意: LM Studio使用当前界面加载的模型")
             
         game_config = self.get_game_config()
-        print(f"历史记录限制: {game_config['context_history_limit']}")
+        rag_config = self.get_rag_config()
+        
+        print(f"即时上下文: {game_config['context_history_limit']} 轮")
+        
+        # 显示RAG状态
+        if rag_config.get('enabled'):
+            print(f"🧠 长期记忆: 已启用 ({rag_config['type']})")
+            print(f"   存储路径: {rag_config['storage_path']}")
+        else:
+            print("🧠 长期记忆: 未启用")
+            
         print("=" * 25)
         
     def interactive_setup(self) -> None:
@@ -289,6 +332,14 @@ class ConfigManager:
                 "context_history_limit": 3,
                 "auto_adjust_context": True,
                 "max_turns": 1000
+            },
+            "rag": {
+                "enabled": False,
+                "type": "lightrag",
+                "storage_path": "storage/conversations",
+                "auto_create_session": True,
+                "query_limit": 3,
+                "context_turns": 5
             },
             "logging": {
                 "log_file": "logs/trpg_game.log",
