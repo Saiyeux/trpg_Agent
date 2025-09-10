@@ -14,7 +14,7 @@
 import json
 import os
 from typing import Dict, Any, List, Optional
-from ..ai.model_client import APIType
+from ..client.model_client import APIType
 
 
 class ConfigManager:

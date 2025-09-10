@@ -18,7 +18,7 @@ import json
 from typing import Dict, Any, Optional
 
 from .game_state import GameState
-from ..ai.model_client import ModelClient, APIType
+from ..client.model_client import ModelClient, APIType
 from ..utils.intent_analyzer import IntentAnalyzer
 from ..utils.action_dispatcher import ActionDispatcher
 from ..utils.logger import GameLogger

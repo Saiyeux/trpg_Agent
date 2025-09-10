@@ -1,0 +1,15 @@
+# AI-TRPG System Dependencies
+# Core HTTP client for AI model communication
+requests>=2.31.0
+
+# Development and optional dependencies
+# For future extensions (uncomment as needed):
+# lightrag>=0.1.0        # For RAG functionality (when implemented)
+# chromadb>=0.4.0        # Vector database for RAG
+# sentence-transformers>=2.2.0  # Text embeddings for RAG
+
+# Note: All other imports are Python standard library modules:
+# - json, os, sys, signal, datetime: Built-in modules
+# - argparse, pathlib: Built-in modules (Python 3.8+)
+# - typing, enum, collections: Built-in modules
+# - No additional dependencies required for core functionality

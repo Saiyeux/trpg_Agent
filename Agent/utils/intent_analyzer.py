@@ -12,7 +12,7 @@
 """
 
 import json
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union
 from collections import Counter
 
 
@@ -48,7 +48,7 @@ class IntentAnalyzer:
         self.intents: List[IntentData] = []  # 所有意图记录
         self.categories: List[str] = []      # 所有分类记录（用于快速统计）
         
-    def add_intent(self, raw_intent_data: str | Dict) -> bool:
+    def add_intent(self, raw_intent_data: Union[str, Dict]) -> bool:
         """
         添加新的意图记录
         

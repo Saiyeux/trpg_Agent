@@ -21,8 +21,8 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from ai_trpg.core.game_engine import GameEngine
-from ai_trpg.config.settings import ConfigManager
+from Agent.core.game_engine import GameEngine
+from Agent.config.settings import ConfigManager
 
 
 def setup_argument_parser() -> argparse.ArgumentParser:

@@ -21,7 +21,7 @@ __author__ = "AI Assistant"
 
 from .core.game_engine import GameEngine
 from .core.game_state import GameState
-from .ai.model_client import ModelClient
+from .client.model_client import ModelClient
 from .utils.intent_analyzer import IntentAnalyzer
 from .utils.logger import GameLogger
 from .config.settings import ConfigManager
