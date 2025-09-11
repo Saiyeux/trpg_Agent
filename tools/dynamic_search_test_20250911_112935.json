@@ -1,0 +1,61 @@
+{
+  "test_metadata": {
+    "timestamp": "2025-09-11T11:29:35.460265",
+    "total_scenarios": 5,
+    "ai_service": "Ollama-qwen2.5"
+  },
+  "results": [
+    {
+      "scenario": "我搜索周围",
+      "response": "玩家在村庄中搜索时发现了一本看似古老的书。它似乎蕴含着某种不为人知的秘密力量。",
+      "new_concepts": 0,
+      "new_items": 0,
+      "concepts_total": 0,
+      "items_total": 0,
+      "has_static_content": false
+    },
+    {
+      "scenario": "我搜索房间角落",
+      "response": "你的搜索检定结果为1，在房间角落的仔细搜查中没有发现任何有用的物品。你可以清楚地看到，整个房间角落依旧整洁如初，丝毫不见藏匿的迹象。",
+      "new_concepts": 0,
+      "new_items": 0,
+      "concepts_total": 0,
+      "items_total": 0,
+      "has_static_content": false
+    },
+    {
+      "scenario": "我搜索宝箱",
+      "response": "在村庄的边缘，玩家发现了一块看似古老的石碑。它似乎被某种力量封印着，在仔细观察后，石碑上刻满了神秘符号。这可能是一段失落文明的线索，值得进一步探索和研究。",
+      "new_concepts": 0,
+      "new_items": 0,
+      "concepts_total": 0,
+      "items_total": 0,
+      "has_static_content": false
+    },
+    {
+      "scenario": "我搜索森林",
+      "response": "你的搜索检定为9，未能发现任何有用的信息。你仔细搜查森林中的每一寸土地，但没有找到任何有价值的物品或线索。森林依旧阴暗而沉默，仿佛在嘲笑你的无功而返。你的心中涌起一股挫败感，失望与疲惫交织在心间。",
+      "new_concepts": 0,
+      "new_items": 0,
+      "concepts_total": 0,
+      "items_total": 0,
+      "has_static_content": false
+    },
+    {
+      "scenario": "我搜索古老的遗迹",
+      "response": "在村庄的一角，发现了一块古老的地图碎片。这些符号似乎代表了一些未被探索的区域。",
+      "new_concepts": 0,
+      "new_items": 0,
+      "concepts_total": 0,
+      "items_total": 0,
+      "has_static_content": true
+    }
+  ],
+  "statistics": {
+    "total_new_concepts": 0,
+    "total_new_items": 0,
+    "static_content_rate": 0.2,
+    "creativity_score": 0.0
+  },
+  "final_concepts": []
+}

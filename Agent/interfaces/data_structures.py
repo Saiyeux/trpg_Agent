@@ -135,6 +135,7 @@ class ExecutionResult:
     new_concepts: List[Concept] = field(default_factory=list)       # 新创建的概念
     failure_reason: str = ""            # 失败原因(如果失败)
     additional_info: Dict[str, Any] = field(default_factory=dict)   # 额外信息
+    metadata: Dict[str, Any] = field(default_factory=dict)          # 元数据(用于AI内容生成)
     
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式，便于传递给场景生成AI"""
@@ -154,7 +155,8 @@ class ExecutionResult:
             'world_changes': self.world_changes,
             'new_concepts': [nc.to_dict() for nc in self.new_concepts],
             'failure_reason': self.failure_reason,
-            'additional_info': self.additional_info
+            'additional_info': self.additional_info,
+            'metadata': self.metadata
         }
     
     def get_summary(self) -> str:

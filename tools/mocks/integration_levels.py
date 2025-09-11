@@ -12,6 +12,22 @@ from .mock_game_state import MockGameState
 from .mock_execution_engine import MockExecutionEngine, MockFunctionRegistry
 from .mock_model_bridge import MockModelBridge, MockContextManager
 
+# 导入真实实现
+try:
+    import sys
+    import os
+    # 添加项目根目录到路径
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    
+    from Agent.implementations import RealExecutionEngine, RealModelBridge, SimpleContextManager
+    from Agent.client.model_client import ModelClient, APIType
+    REAL_IMPLEMENTATIONS_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Real implementations not available: {e}")
+    REAL_IMPLEMENTATIONS_AVAILABLE = False
+
 
 @dataclass
 class IntegrationComponents:
@@ -60,15 +76,26 @@ class IntegrationLevel:
         用途: 验证执行引擎逻辑，Function库功能
         特点: 真实执行逻辑，Mock状态和通信
         """
-        # 这里会在Phase 1实现真实的ExecutionEngine后替换
-        return IntegrationComponents(
-            game_state=MockGameState(),
-            execution_engine=MockExecutionEngine(),  # 待替换为RealExecutionEngine
-            function_registry=MockFunctionRegistry(),  # 待替换为RealFunctionRegistry
-            model_bridge=MockModelBridge(),
-            context_manager=MockContextManager(),
-            description="Level 2: 真实执行引擎 - 执行逻辑验证"
-        )
+        if REAL_IMPLEMENTATIONS_AVAILABLE:
+            # 使用真实的ExecutionEngine
+            return IntegrationComponents(
+                game_state=MockGameState(),
+                execution_engine=RealExecutionEngine(),
+                function_registry=None,  # RealExecutionEngine内置registry
+                model_bridge=MockModelBridge(),
+                context_manager=MockContextManager(),
+                description="Level 2: 真实执行引擎 - 执行逻辑验证"
+            )
+        else:
+            # 回退到Mock实现
+            return IntegrationComponents(
+                game_state=MockGameState(),
+                execution_engine=MockExecutionEngine(),
+                function_registry=MockFunctionRegistry(),
+                model_bridge=MockModelBridge(),
+                context_manager=MockContextManager(),
+                description="Level 2: Mock执行引擎 - 真实实现不可用"
+            )
     
     @staticmethod
     def level_3_real_state() -> IntegrationComponents:
