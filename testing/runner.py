@@ -416,8 +416,16 @@ class InteractiveTestRunner:
         self.ui.show_message("测试LM Studio文本生成、响应解析和动态内容生成功能")
         
         try:
-            # 导入测试模块
-            from .modules.text_generation_test import TextGenerationTestModule
+            # 导入测试模块 - 修复相对导入问题
+            import sys
+            from pathlib import Path
+            
+            # 确保项目根目录在路径中
+            project_root = Path(__file__).parent.parent
+            if str(project_root) not in sys.path:
+                sys.path.insert(0, str(project_root))
+            
+            from testing.modules.text_generation_test import TextGenerationTestModule
             
             # 创建并运行测试
             test_module = TextGenerationTestModule()

@@ -5,10 +5,18 @@
 """
 
 import time
+import sys
+from pathlib import Path
 from typing import Dict, Any, List, Optional
-from ..common.interactive_ui import InteractiveUI
-from ..common.ai_setup import AIServiceChecker
-from ..common.test_interface import TestModule
+
+# 确保项目根目录在路径中
+project_root = Path(__file__).parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from testing.common.interactive_ui import InteractiveUI
+from testing.common.ai_setup import AIServiceChecker
+from testing.common.test_interface import TestModule
 
 from Agent.ai.text_generator import TextGenerator, LMStudioConfig, create_text_generator
 from Agent.ai.response_parser import ResponseParser, parse_ai_response
@@ -270,7 +278,6 @@ class TextGenerationTestModule(TestModule):
         
         try:
             from Agent.ai.response_parser import ContentGenerationRequest, ContentType
-            from Agent.interfaces.state_interfaces import GameState
             
             # 创建测试游戏状态
             test_game_state = self._create_test_game_state()
