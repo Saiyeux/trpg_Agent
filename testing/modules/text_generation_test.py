@@ -15,8 +15,14 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from testing.common.interactive_ui import InteractiveUI
-from testing.common.ai_setup import AIServiceChecker
-from testing.common.test_interface import TestModule
+from testing.common.ai_setup import AISetupHelper
+
+# 简化的TestModule基类
+class TestModule:
+    """测试模块基类"""
+    def __init__(self):
+        self.name = "TestModule"
+        self.description = "Base test module"
 
 from Agent.ai.text_generator import TextGenerator, LMStudioConfig, create_text_generator
 from Agent.ai.response_parser import ResponseParser, parse_ai_response
@@ -32,7 +38,7 @@ class TextGenerationTestModule(TestModule):
         self.name = "文本生成系统测试"
         self.description = "测试LM Studio文本生成、响应解析和动态内容生成"
         self.ui = InteractiveUI()
-        self.ai_checker = AIServiceChecker()
+        self.ai_helper = AISetupHelper()
         self.text_generator: Optional[TextGenerator] = None
         self.response_parser = ResponseParser()
         self.content_orchestrator = create_content_orchestrator()
@@ -101,11 +107,11 @@ class TextGenerationTestModule(TestModule):
         try:
             # 检查LM Studio服务
             self.ui.print_step("检查LM Studio服务状态...")
-            lm_studio_status = self.ai_checker.check_lm_studio()
+            ai_available = self.ai_helper.check_ai_availability()
             
-            if not lm_studio_status["available"]:
+            if not ai_available:
                 result["message"] = "LM Studio服务不可用"
-                result["details"] = lm_studio_status
+                result["details"] = {"ai_available": False}
                 return result
             
             # 创建文本生成器
@@ -119,7 +125,7 @@ class TextGenerationTestModule(TestModule):
             result["message"] = f"成功连接LM Studio，可用模型: {len(available_models)}个"
             result["details"] = {
                 "available_models": available_models,
-                "current_model": self.text_generator._current_model
+                "current_model": getattr(self.text_generator, '_current_model', 'unknown')
             }
             
             self.ui.print_success(result["message"])
