@@ -334,15 +334,21 @@ class InteractiveTestRunner:
     
     def run_execution_engine_test(self, session):
         """运行执行引擎测试"""
-        self.ui.show_message("⚙️ 执行引擎测试")
-        self.ui.show_message("连续测试模式 - 测试完整的意图→执行→结果流程")
+        self.ui.show_message("⚙️ 执行引擎测试 (新版本 v1.2.0)")
+        self.ui.show_message("连续测试模式 - 测试完整的意图→执行→状态管理流程")
+        self.ui.show_message("现在包含状态管理器集成，会显示角色状态变化")
         self.ui.show_message("支持所有类别：攻击、搜索、对话、交易、移动、状态查询、交互、技能")
-        print("测试示例:")
-        print("  • 攻击类: '攻击哥布林', '攻击' (无目标测试)")
-        print("  • 搜索类: '搜索宝箱', '探索房间'")
-        print("  • 技能类: '施放火球术', '治疗术' (测试状态变更)")
-        print("  • 交互类: '撬锁', '开门'")
-        print("  • 移动类: '去村庄', '向北走'")
+        print("\n🎮 测试示例 (新增状态管理):")
+        print("  • 攻击类: '攻击哥布林' (HP变化), '攻击森林哥布林'")
+        print("  • 搜索类: '搜索宝箱', '探索房间' (可能获得物品)")
+        print("  • 技能类: '施放火球术' (MP消耗), '治疗术' (HP恢复)")
+        print("  • 交互类: '撬锁', '开门' (技能检定)")
+        print("  • 移动类: '去村庄', '向北走' (位置变更)")
+        print("  • 状态查询: '查看状态', '显示背包' (查看角色信息)")
+        print("\n💡 新功能提示:")
+        print("  - 每次执行后会显示角色状态 (HP/MP/位置/背包)")
+        print("  - 状态变更会实时反映在状态管理器中")
+        print("  - 支持可填充的角色属性、物品和地图系统")
         self.ui.show_message("输入 'quit'、'exit'、'done' 或 '退出' 结束测试")
         print()
         
@@ -502,8 +508,21 @@ class InteractiveTestRunner:
     
     def run_full_integration_test(self, session):
         """运行完整集成测试"""
-        self.ui.show_message("🔗 完整集成测试")
-        self.ui.show_message("测试端到端完整流程的协调性")
+        self.ui.show_message("🔗 完整集成测试 (v1.2.0 - 包含文本生成)")
+        self.ui.show_message("测试完整的AI驱动游戏流程：意图→执行→状态→文本生成→解析→动态内容")
+        print("\n🚀 测试的完整流程:")
+        print("  1. 意图识别 (用户输入 → AI分析)")
+        print("  2. 执行引擎 (意图 → 游戏逻辑)")
+        print("  3. 状态管理 (属性变更 → 持久化)")
+        print("  4. 文本生成 (LM Studio → 自然语言)")
+        print("  5. 响应解析 (提取隐含变更)")
+        print("  6. 动态内容 (自动创建游戏内容)")
+        print("\n📝 建议测试输入:")
+        print("  • '攻击森林哥布林' (测试战斗和状态变更)")
+        print("  • '搜索神秘宝箱' (测试物品发现)")
+        print("  • '施放治疗术' (测试MP消耗和HP恢复)")
+        print("  • '探索未知森林' (测试动态地点生成)")
+        print("  • '与神秘商人对话' (测试NPC交互)")
         self.ui.show_message("输入 'quit'、'exit'、'done' 或 '退出' 结束测试")
         print()
         
@@ -523,8 +542,31 @@ class InteractiveTestRunner:
                 continue
             
             test_count += 1
-            self.ui.show_message(f"\n--- 测试用例 #{test_count} ---")
-            self.ui.show_message("🔗 完整集成测试 - 开发中...")
+            
+            # 显示当前测试
+            self.ui.show_message(f"\n--- 完整集成测试用例 #{test_count} ---")
+            self.ui.show_message(f"输入: {user_input}")
+            
+            # 执行完整流程集成测试
+            start_time = time.time()
+            result = self._execute_full_integration_test(user_input)
+            execution_time = time.time() - start_time
+            
+            # 显示结果
+            self.ui.show_result("完整集成测试结果", result)
+            
+            # 记录日志
+            self.logger.log_test(
+                session=session,
+                test_case=f"完整集成_{test_count}",
+                user_input=user_input,
+                system_output=str(result),
+                execution_time=execution_time,
+                success=result.get('success', False),
+                metadata=result
+            )
+            
+            # 显示分隔线
             print("─" * 60)
         
         if test_count > 0:
@@ -586,7 +628,7 @@ class InteractiveTestRunner:
             }
     
     def _execute_full_pipeline_test(self, user_input: str) -> Dict[str, Any]:
-        """执行完整的意图→执行流程测试"""
+        """执行完整的意图→执行流程测试 (新版本 - 包含状态管理器测试)"""
         try:
             # Step 1: 意图识别
             intent_result = self._execute_intent_classification(user_input)
@@ -607,17 +649,30 @@ class InteractiveTestRunner:
                 target=intent_result.get('target', '')
             )
             
-            # Step 3: 创建执行引擎和游戏状态
+            # Step 3: 创建新的执行引擎 (使用填充式状态管理器)
             from Agent.implementations.execution_engine import RealExecutionEngine
             from Agent.implementations.game_state import RealGameState
             
-            execution_engine = RealExecutionEngine()
+            execution_engine = RealExecutionEngine()  # 现在包含状态管理器
             game_state = RealGameState()
             
             # Step 4: 执行意图
             execution_result = execution_engine.process(intent, game_state)
             
-            # Step 5: 格式化结果
+            # Step 5: 检查状态管理器状态
+            player_manager = execution_engine.get_player_manager()
+            npc_manager = execution_engine.get_npc_manager()
+            env_manager = execution_engine.get_environment_manager()
+            
+            # 获取当前状态信息
+            player_status = {
+                "HP": f"{player_manager.character.get_attribute('current_hp')}/{player_manager.character.get_attribute('max_hp')}",
+                "MP": f"{player_manager.character.get_attribute('current_mp')}/{player_manager.character.get_attribute('max_mp')}",
+                "位置": player_manager.current_location,
+                "背包物品": len([s for s in player_manager.inventory.slots if s])
+            }
+            
+            # Step 6: 格式化结果
             result = {
                 "success": True,
                 "执行阶段": "完成",
@@ -628,7 +683,8 @@ class InteractiveTestRunner:
                 "执行行动": execution_result.action_taken,
                 "状态变更数": len(execution_result.state_changes),
                 "骰子次数": len(execution_result.dice_results),
-                "需要AI内容": "是" if (execution_result.metadata.get("requires_ai_content", False) if execution_result.metadata else False) else "否"
+                "需要AI内容": "是" if (execution_result.metadata.get("requires_ai_content", False) if execution_result.metadata else False) else "否",
+                "玩家状态": player_status
             }
             
             if not execution_result.success:
@@ -642,7 +698,7 @@ class InteractiveTestRunner:
             
             if execution_result.state_changes:
                 result["状态变更详情"] = [
-                    f"{change.target}.{change.property}: {change.old_value}→{change.value}"
+                    f"{change.target}.{change.property_name if hasattr(change, 'property_name') else change.property}: {change.old_value}→{change.new_value if hasattr(change, 'new_value') else change.value}"
                     for change in execution_result.state_changes
                 ]
             
@@ -735,6 +791,131 @@ class InteractiveTestRunner:
             return {
                 "success": False,
                 "执行阶段": "执行引擎错误",
+                "error": str(e),
+                "错误详情": traceback.format_exc()
+            }
+    
+    def _execute_full_integration_test(self, user_input: str) -> Dict[str, Any]:
+        """执行完整集成测试 (包含文本生成和动态内容)"""
+        try:
+            # Step 1: 基础执行流程 (复用现有测试)
+            basic_result = self._execute_full_pipeline_test(user_input)
+            if not basic_result.get('success'):
+                return basic_result
+            
+            # Step 2: 检查是否需要AI生成内容
+            needs_ai_content = basic_result.get('需要AI内容') == '是'
+            
+            result = {
+                "success": True,
+                "阶段1_基础执行": "完成",
+                "基础执行结果": basic_result,
+                "需要文本生成": "是" if needs_ai_content else "否"
+            }
+            
+            if needs_ai_content:
+                try:
+                    # Step 3: 文本生成测试 (模拟)
+                    self.ui.show_message("  🤖 测试文本生成...")
+                    
+                    # 创建模拟的执行结果和状态变更用于文本生成
+                    from Agent.interfaces.data_structures import ExecutionResult, StateChange
+                    from Agent.ai.text_generator import create_text_generator
+                    
+                    # 尝试连接LM Studio
+                    try:
+                        text_generator = create_text_generator()
+                        
+                        # 创建测试执行结果
+                        test_execution_result = ExecutionResult(
+                            success=basic_result.get('执行成功') == '是',
+                            intent_category=basic_result.get('意图类别', '其他'),
+                            target=basic_result.get('意图目标', ''),
+                            result_description=basic_result.get('执行行动', ''),
+                            state_changes=[]
+                        )
+                        
+                        # 创建测试状态变更
+                        test_state_changes = []
+                        if basic_result.get('状态变更详情'):
+                            for change_desc in basic_result.get('状态变更详情', [])[:1]:  # 只取第一个变更作为示例
+                                parts = change_desc.split('.')
+                                if len(parts) >= 2:
+                                    target = parts[0]
+                                    prop_and_values = '.'.join(parts[1:])
+                                    if '→' in prop_and_values:
+                                        prop_part, values_part = prop_and_values.split(':', 1) if ':' in prop_and_values else (prop_and_values, '')
+                                        if '→' in values_part:
+                                            old_val, new_val = values_part.split('→')
+                                            test_state_changes.append(StateChange(
+                                                target=target,
+                                                property_name=prop_part.strip(),
+                                                old_value=old_val.strip(),
+                                                new_value=new_val.strip(),
+                                                change_reason="测试状态变更"
+                                            ))
+                        
+                        # 生成文本
+                        game_context = basic_result.get('玩家状态', {})
+                        text_response = text_generator.generate_response(
+                            test_execution_result, test_state_changes, game_context
+                        )
+                        
+                        if text_response.success:
+                            result["阶段2_文本生成"] = "完成"
+                            result["生成文本"] = text_response.content[:200] + "..." if len(text_response.content) > 200 else text_response.content
+                            result["包含潜在变更"] = "是" if text_response.has_potential_changes else "否"
+                            
+                            # Step 4: 响应解析测试
+                            if text_response.has_potential_changes:
+                                self.ui.show_message("  📋 测试响应解析...")
+                                
+                                from Agent.ai.response_parser import parse_ai_response
+                                state_changes, content_requests = parse_ai_response(text_response.content)
+                                
+                                result["阶段3_响应解析"] = "完成"
+                                result["解析出状态变更"] = len(state_changes)
+                                result["解析出内容请求"] = len(content_requests)
+                                
+                                # Step 5: 动态内容生成测试
+                                if content_requests:
+                                    self.ui.show_message("  ✨ 测试动态内容生成...")
+                                    
+                                    from Agent.implementations.content_generation_functions import create_content_orchestrator
+                                    from Agent.implementations.game_state import RealGameState
+                                    
+                                    orchestrator = create_content_orchestrator()
+                                    test_game_state = RealGameState()
+                                    
+                                    generation_results = orchestrator.process_generation_requests(
+                                        content_requests, test_game_state
+                                    )
+                                    
+                                    success_count = sum(1 for r in generation_results if r.success)
+                                    
+                                    result["阶段4_动态内容生成"] = "完成"
+                                    result["成功生成内容"] = f"{success_count}/{len(content_requests)}"
+                                    result["生成内容类型"] = [req.content_type.value for req in content_requests]
+                            
+                        else:
+                            result["阶段2_文本生成"] = f"失败: {text_response.error_message}"
+                            result["LM Studio连接"] = "失败"
+                    
+                    except Exception as lm_error:
+                        result["阶段2_文本生成"] = f"LM Studio不可用: {str(lm_error)}"
+                        result["LM Studio连接"] = "失败"
+                        self.ui.show_warning("⚠️  LM Studio不可用，跳过文本生成测试")
+                
+                except Exception as text_error:
+                    result["文本生成错误"] = str(text_error)
+            
+            return result
+            
+        except Exception as e:
+            import traceback
+            return {
+                "success": False,
+                "阶段": "完整集成测试错误",
                 "error": str(e),
                 "错误详情": traceback.format_exc()
             }
