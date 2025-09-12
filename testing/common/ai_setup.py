@@ -46,7 +46,7 @@ class AISetupHelper:
             
             print(f"✅ 检测到AI服务: {self.ai_config.name}")
             print(f"   模型: {self.ai_config.model_name}")
-            print(f"   地址: {self.ai_config.endpoint}")
+            print(f"   地址: {self.ai_config.base_url}")
             
             # 创建客户端
             self.model_client = create_ai_client_from_config(self.ai_config)
@@ -93,6 +93,6 @@ class AISetupHelper:
         return {
             "name": getattr(self.ai_config, 'name', 'Unknown'),
             "model": getattr(self.ai_config, 'model_name', 'Unknown'),
-            "endpoint": getattr(self.ai_config, 'endpoint', 'Unknown'),
+            "endpoint": getattr(self.ai_config, 'base_url', 'Unknown'),
             "context_limit": getattr(self.ai_config, 'context_limit', 'Unknown')
         }

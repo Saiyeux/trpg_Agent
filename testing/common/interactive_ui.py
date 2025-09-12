@@ -5,6 +5,7 @@
 """
 
 import os
+import sys
 from typing import List, Dict, Any
 from dataclasses import dataclass
 
@@ -21,6 +22,7 @@ class InteractiveUI:
     
     def __init__(self):
         self.width = 60
+        self.is_interactive = sys.stdin.isatty()
     
     def clear_screen(self):
         """清屏"""
@@ -28,10 +30,13 @@ class InteractiveUI:
     
     def show_header(self):
         """显示系统头部"""
-        self.clear_screen()
+        if self.is_interactive:
+            self.clear_screen()
         print("=" * self.width)
         print("🎮 TRPG Agent 交互式测试系统".center(self.width - 6))
         print("=" * self.width)
+        if not self.is_interactive:
+            print("⚠️  检测到非交互式环境，某些功能可能受限")
         print()
     
     def show_section_header(self, title: str):
@@ -70,6 +75,9 @@ class InteractiveUI:
                     self.show_error("选择超出范围，请重新输入")
             except ValueError:
                 self.show_error("请输入有效的数字")
+            except EOFError:
+                print("\n❌ 检测到EOF，退出系统")
+                return -1
     
     def show_guide(self, guide_content: str):
         """显示测试指南"""
@@ -78,7 +86,10 @@ class InteractiveUI:
         print(guide_content)
         print("=" * self.width)
         
-        input("\n按回车继续...")
+        try:
+            input("\n按回车继续...")
+        except EOFError:
+            print("\n❌ 检测到EOF，跳过指南")
     
     def show_message(self, message: str):
         """显示普通消息"""
@@ -113,15 +124,23 @@ class InteractiveUI:
     
     def get_input(self, prompt: str) -> str:
         """获取用户输入"""
-        return input(f"📝 {prompt}")
+        try:
+            return input(f"📝 {prompt}")
+        except EOFError:
+            print("\n❌ 检测到EOF，返回空输入")
+            return ""
     
     def confirm(self, question: str) -> bool:
         """确认对话框"""
         while True:
-            response = input(f"❓ {question} (y/n): ").strip().lower()
-            if response in ['y', 'yes', '是', 'Y']:
-                return True
-            elif response in ['n', 'no', '否', 'N']:
+            try:
+                response = input(f"❓ {question} (y/n): ").strip().lower()
+                if response in ['y', 'yes', '是', 'Y']:
+                    return True
+                elif response in ['n', 'no', '否', 'N']:
+                    return False
+                else:
+                    self.show_error("请输入 y/n")
+            except EOFError:
+                print("\n❌ 检测到EOF，默认选择否")
                 return False
-            else:
-                self.show_error("请输入 y/n")

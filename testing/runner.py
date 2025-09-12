@@ -167,30 +167,43 @@ class InteractiveTestRunner:
     def run_intent_classification_test(self, session):
         """运行意图识别测试"""
         self.ui.show_message("🎯 意图识别测试")
-        self.ui.show_message("请输入测试用例，测试系统对不同输入的意图理解能力")
+        self.ui.show_message("连续测试模式 - 逐条输入测试用例，系统会立即分析并显示结果")
         self.ui.show_message("提示: 可以尝试攻击、对话、搜索、交易、状态查询等不同类型")
+        print("快速测试示例:")
+        print("  • 攻击: '我要攻击哥布林', '砍死那个敌人', '使用火球术'")
+        print("  • 对话: '和村长对话', '询问任务', '打招呼'")
+        print("  • 搜索: '搜索宝箱', '查找道具', '探索房间'")
+        print("  • 状态: '查看状态', '显示背包', '我的血量'")
+        print("  • 其他: '休息', '买装备', '学习技能'")
+        self.ui.show_message("输入 'quit'、'exit'、'done' 或 '退出' 结束测试")
+        print()
         
-        test_cases = []
+        test_count = 0
+        
         while True:
-            user_input = self.ui.get_input("测试输入 (输入 'done' 完成): ")
-            if user_input.lower() in ['done', '完成', 'quit', 'exit']:
-                break
-            if user_input.strip():
-                test_cases.append(user_input.strip())
-        
-        if not test_cases:
-            self.ui.show_warning("⚠️  没有测试用例")
-            return
-        
-        # 执行测试用例
-        for i, test_input in enumerate(test_cases, 1):
-            self.ui.show_message(f"\n--- 测试用例 {i}/{len(test_cases)} ---")
-            self.ui.show_message(f"输入: {test_input}")
+            # 获取用户输入
+            user_input = self.ui.get_input(f"测试输入 #{test_count + 1} (quit退出): ")
             
-            # 这里应该调用实际的意图识别系统
-            # 目前作为占位符实现
+            # 检查退出条件
+            if not user_input or user_input.lower() in ['done', '完成', 'quit', 'exit', '退出']:
+                if test_count == 0:
+                    self.ui.show_warning("⚠️  没有进行任何测试")
+                else:
+                    self.ui.show_success(f"✅ 完成 {test_count} 个测试用例")
+                break
+            
+            if not user_input.strip():
+                continue
+            
+            test_count += 1
+            
+            # 显示当前测试
+            self.ui.show_message(f"\n--- 测试用例 #{test_count} ---")
+            self.ui.show_message(f"输入: {user_input}")
+            
+            # 执行意图识别
             start_time = time.time()
-            result = self._execute_intent_classification(test_input)
+            result = self._execute_intent_classification(user_input)
             execution_time = time.time() - start_time
             
             # 显示结果
@@ -199,29 +212,139 @@ class InteractiveTestRunner:
             # 记录日志
             self.logger.log_test(
                 session=session,
-                test_case=f"意图识别_{i}",
-                user_input=test_input,
+                test_case=f"意图识别_{test_count}",
+                user_input=user_input,
                 system_output=str(result),
                 execution_time=execution_time,
                 success=result.get('success', False),
                 metadata=result
             )
+            
+            # 显示分隔线
+            print("─" * 60)
+            
+        if test_count > 0:
+            self.ui.show_message(f"\n🎯 本轮测试统计: 共 {test_count} 个用例")
     
     def run_execution_engine_test(self, session):
-        """运行执行引擎测试 - 占位符实现"""
-        self.ui.show_message("⚙️ 执行引擎测试 - 开发中...")
+        """运行执行引擎测试"""
+        self.ui.show_message("⚙️ 执行引擎测试")
+        self.ui.show_message("测试游戏逻辑的执行正确性和状态管理")
+        self.ui.show_message("输入 'quit'、'exit'、'done' 或 '退出' 结束测试")
+        print()
+        
+        test_count = 0
+        
+        while True:
+            user_input = self.ui.get_input(f"执行引擎测试 #{test_count + 1} (quit退出): ")
+            
+            if not user_input or user_input.lower() in ['done', '完成', 'quit', 'exit', '退出']:
+                if test_count == 0:
+                    self.ui.show_warning("⚠️  没有进行任何测试")
+                else:
+                    self.ui.show_success(f"✅ 完成 {test_count} 个测试用例")
+                break
+            
+            if not user_input.strip():
+                continue
+            
+            test_count += 1
+            self.ui.show_message(f"\n--- 测试用例 #{test_count} ---")
+            self.ui.show_message("⚙️ 执行引擎测试 - 开发中...")
+            print("─" * 60)
+        
+        if test_count > 0:
+            self.ui.show_message(f"\n⚙️ 本轮测试统计: 共 {test_count} 个用例")
     
     def run_scene_generation_test(self, session):
-        """运行场景生成测试 - 占位符实现"""  
-        self.ui.show_message("🎬 场景生成测试 - 开发中...")
+        """运行场景生成测试"""
+        self.ui.show_message("🎬 场景生成测试")
+        self.ui.show_message("测试AI场景描述的质量和一致性")
+        self.ui.show_message("输入 'quit'、'exit'、'done' 或 '退出' 结束测试")
+        print()
+        
+        test_count = 0
+        
+        while True:
+            user_input = self.ui.get_input(f"场景生成测试 #{test_count + 1} (quit退出): ")
+            
+            if not user_input or user_input.lower() in ['done', '完成', 'quit', 'exit', '退出']:
+                if test_count == 0:
+                    self.ui.show_warning("⚠️  没有进行任何测试")
+                else:
+                    self.ui.show_success(f"✅ 完成 {test_count} 个测试用例")
+                break
+            
+            if not user_input.strip():
+                continue
+            
+            test_count += 1
+            self.ui.show_message(f"\n--- 测试用例 #{test_count} ---")
+            self.ui.show_message("🎬 场景生成测试 - 开发中...")
+            print("─" * 60)
+        
+        if test_count > 0:
+            self.ui.show_message(f"\n🎬 本轮测试统计: 共 {test_count} 个用例")
     
     def run_dynamic_content_test(self, session):
-        """运行动态内容测试 - 占位符实现"""
-        self.ui.show_message("✨ 动态内容测试 - 开发中...")
+        """运行动态内容测试"""
+        self.ui.show_message("✨ 动态内容生成测试")
+        self.ui.show_message("测试AI动态创建游戏内容的能力")
+        self.ui.show_message("输入 'quit'、'exit'、'done' 或 '退出' 结束测试")
+        print()
+        
+        test_count = 0
+        
+        while True:
+            user_input = self.ui.get_input(f"动态内容测试 #{test_count + 1} (quit退出): ")
+            
+            if not user_input or user_input.lower() in ['done', '完成', 'quit', 'exit', '退出']:
+                if test_count == 0:
+                    self.ui.show_warning("⚠️  没有进行任何测试")
+                else:
+                    self.ui.show_success(f"✅ 完成 {test_count} 个测试用例")
+                break
+            
+            if not user_input.strip():
+                continue
+            
+            test_count += 1
+            self.ui.show_message(f"\n--- 测试用例 #{test_count} ---")
+            self.ui.show_message("✨ 动态内容测试 - 开发中...")
+            print("─" * 60)
+        
+        if test_count > 0:
+            self.ui.show_message(f"\n✨ 本轮测试统计: 共 {test_count} 个用例")
     
     def run_full_integration_test(self, session):
-        """运行完整集成测试 - 占位符实现"""
-        self.ui.show_message("🔗 完整集成测试 - 开发中...")
+        """运行完整集成测试"""
+        self.ui.show_message("🔗 完整集成测试")
+        self.ui.show_message("测试端到端完整流程的协调性")
+        self.ui.show_message("输入 'quit'、'exit'、'done' 或 '退出' 结束测试")
+        print()
+        
+        test_count = 0
+        
+        while True:
+            user_input = self.ui.get_input(f"完整集成测试 #{test_count + 1} (quit退出): ")
+            
+            if not user_input or user_input.lower() in ['done', '完成', 'quit', 'exit', '退出']:
+                if test_count == 0:
+                    self.ui.show_warning("⚠️  没有进行任何测试")
+                else:
+                    self.ui.show_success(f"✅ 完成 {test_count} 个测试用例")
+                break
+            
+            if not user_input.strip():
+                continue
+            
+            test_count += 1
+            self.ui.show_message(f"\n--- 测试用例 #{test_count} ---")
+            self.ui.show_message("🔗 完整集成测试 - 开发中...")
+            print("─" * 60)
+        
+        if test_count > 0:
+            self.ui.show_message(f"\n🔗 本轮测试统计: 共 {test_count} 个用例")
     
     def _execute_intent_classification(self, user_input: str) -> Dict[str, Any]:
         """执行真实的意图识别系统"""
