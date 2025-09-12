@@ -24,6 +24,30 @@ class TestModule:
         self.name = "TestModule"
         self.description = "Base test module"
 
+
+# UI方法适配器，将print_*方法映射到show_*方法
+class UIAdapter:
+    """UI方法适配器"""
+    def __init__(self, ui):
+        self.ui = ui
+    
+    def __getattr__(self, name):
+        # 如果是print_开头的方法，映射到对应的show_方法
+        if name.startswith('print_'):
+            method_name = name.replace('print_', 'show_')
+            if method_name == 'show_section':
+                return self.ui.show_section_header
+            elif method_name == 'show_step':
+                return self.ui.show_message
+            elif method_name == 'show_info':
+                return self.ui.show_message
+            elif hasattr(self.ui, method_name):
+                return getattr(self.ui, method_name)
+            else:
+                return self.ui.show_message
+        else:
+            return getattr(self.ui, name)
+
 from Agent.ai.text_generator import TextGenerator, LMStudioConfig, create_text_generator
 from Agent.ai.response_parser import ResponseParser, parse_ai_response
 from Agent.implementations.content_generation_functions import create_content_orchestrator
@@ -37,7 +61,7 @@ class TextGenerationTestModule(TestModule):
     def __init__(self):
         self.name = "文本生成系统测试"
         self.description = "测试LM Studio文本生成、响应解析和动态内容生成"
-        self.ui = InteractiveUI()
+        self.ui = UIAdapter(InteractiveUI())  # 使用适配器
         self.ai_helper = AISetupHelper()
         self.text_generator: Optional[TextGenerator] = None
         self.response_parser = ResponseParser()
@@ -54,7 +78,7 @@ class TextGenerationTestModule(TestModule):
         
         try:
             # 1. 测试LM Studio连接
-            self.ui.print_section("1. LM Studio连接测试")
+            self.ui.show_section_header("1. LM Studio连接测试")
             connection_result = self._test_lm_studio_connection()
             results["tests"].append({"name": "LM Studio连接", "result": connection_result})
             
