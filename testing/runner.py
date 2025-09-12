@@ -151,6 +151,12 @@ class InteractiveTestRunner:
                 guide_file="execution_engine.md"
             ),
             TestModule(
+                name="text_generation",
+                display_name="文本生成系统",
+                description="测试LM Studio文本生成、响应解析和动态内容生成",
+                guide_file="text_generation.md"
+            ),
+            TestModule(
                 name="scene_generation",
                 display_name="场景生成",
                 description="测试AI场景描述的质量和一致性",
@@ -253,6 +259,8 @@ class InteractiveTestRunner:
             self.run_intent_classification_test(session)
         elif module.name == "execution_engine":
             self.run_execution_engine_test(session)
+        elif module.name == "text_generation":
+            self.run_text_generation_test(session)
         elif module.name == "scene_generation":
             self.run_scene_generation_test(session)
         elif module.name == "dynamic_content":
@@ -395,6 +403,42 @@ class InteractiveTestRunner:
             
         if test_count > 0:
             self.ui.show_message(f"\n⚙️ 本轮测试统计: 共 {test_count} 个用例")
+    
+    def run_text_generation_test(self, session):
+        """运行文本生成测试"""
+        self.ui.show_message("📝 文本生成系统测试")
+        self.ui.show_message("测试LM Studio文本生成、响应解析和动态内容生成功能")
+        
+        try:
+            # 导入测试模块
+            from .modules.text_generation_test import TextGenerationTestModule
+            
+            # 创建并运行测试
+            test_module = TextGenerationTestModule()
+            results = test_module.run_tests()
+            
+            # 记录测试结果到会话
+            self.logger.log_test(
+                session=session,
+                test_case="text_generation_full_test",
+                user_input="自动化文本生成测试",
+                system_output=str(results["summary"]),
+                execution_time=results.get("duration", 0),
+                success=results["summary"].get("overall_success", False),
+                metadata=results
+            )
+            
+        except Exception as e:
+            self.ui.show_error(f"❌ 文本生成测试异常: {str(e)}")
+            self.logger.log_test(
+                session=session,
+                test_case="text_generation_test_error",
+                user_input="文本生成测试",
+                system_output=f"测试异常: {str(e)}",
+                execution_time=0,
+                success=False,
+                metadata={"error": str(e)}
+            )
     
     def run_scene_generation_test(self, session):
         """运行场景生成测试"""

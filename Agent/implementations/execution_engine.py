@@ -12,6 +12,10 @@ from ..interfaces.execution_interfaces import (
 )
 from ..interfaces.data_structures import Intent, ExecutionResult, StateChange, DiceRoll
 from ..interfaces.state_interfaces import GameState
+from ..interfaces.state_management_interfaces import StateManagerRegistry
+from .fillable_state_managers import (
+    FillablePlayerStateManager, FillableNPCStateManager, FillableEnvironmentStateManager
+)
 
 
 class RealFunctionRegistry(FunctionRegistry):
@@ -681,12 +685,28 @@ class SkillFunction(GameFunction):
 class RealExecutionEngine(ExecutionEngine):
     """真实的执行引擎实现"""
     
-    def __init__(self):
+    def __init__(self, character_template: str = "战士"):
         self.registry = RealFunctionRegistry()
         self.execution_history: List[Dict[str, Any]] = []
         
+        # 初始化状态管理器
+        self.state_registry = StateManagerRegistry()
+        self._init_state_managers(character_template)
+        
         # 注册默认函数
         self._register_default_functions()
+    
+    def _init_state_managers(self, character_template: str):
+        """初始化状态管理器"""
+        # 创建状态管理器实例
+        player_manager = FillablePlayerStateManager(character_template)
+        npc_manager = FillableNPCStateManager()
+        env_manager = FillableEnvironmentStateManager()
+        
+        # 注册到状态管理器注册表
+        self.state_registry.register("player", player_manager)
+        self.state_registry.register("npc", npc_manager)
+        self.state_registry.register("environment", env_manager)
     
     def _register_default_functions(self):
         """注册默认的游戏函数"""
@@ -781,3 +801,19 @@ class RealExecutionEngine(ExecutionEngine):
     def clear_history(self):
         """清空执行历史"""
         self.execution_history.clear()
+    
+    def get_state_registry(self) -> StateManagerRegistry:
+        """获取状态管理器注册表"""
+        return self.state_registry
+    
+    def get_player_manager(self) -> FillablePlayerStateManager:
+        """获取玩家状态管理器"""
+        return self.state_registry.get_manager("player")
+    
+    def get_npc_manager(self) -> FillableNPCStateManager:
+        """获取NPC状态管理器"""
+        return self.state_registry.get_manager("npc")
+    
+    def get_environment_manager(self) -> FillableEnvironmentStateManager:
+        """获取环境状态管理器"""
+        return self.state_registry.get_manager("environment")
