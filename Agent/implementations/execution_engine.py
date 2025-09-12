@@ -46,19 +46,25 @@ class RealFunctionRegistry(FunctionRegistry):
     
     def find_functions_by_intent(self, intent: Intent) -> List[GameFunction]:
         """根据意图查找合适的函数"""
-        # 简单实现：基于意图类别匹配
+        # 基于意图类别匹配（使用中文分类）
         if intent.category == "攻击":
-            return self.get_functions_by_category("attack")
+            return self.get_functions_by_category("攻击")
         elif intent.category == "搜索":
-            return self.get_functions_by_category("search")
+            return self.get_functions_by_category("搜索")
         elif intent.category == "对话":
-            return self.get_functions_by_category("dialogue")
+            return self.get_functions_by_category("对话")
         elif intent.category == "交易":
-            return self.get_functions_by_category("trade")
+            return self.get_functions_by_category("交易")
+        elif intent.category == "移动":
+            return self.get_functions_by_category("移动")
         elif intent.category == "状态查询":
-            return self.get_functions_by_category("status")
+            return self.get_functions_by_category("状态查询")
+        elif intent.category == "交互":
+            return self.get_functions_by_category("交互")
+        elif intent.category == "技能":
+            return self.get_functions_by_category("技能")
         else:
-            return self.get_functions_by_category("other")
+            return self.get_functions_by_category("其他")
     
     def get_all_functions(self) -> Dict[str, GameFunction]:
         """获取所有已注册的函数"""
@@ -162,7 +168,7 @@ class AttackFunction(GameFunction):
         self.name = "attack"
         self.description = "对目标进行攻击"
         self.metadata = {
-            'category': 'attack',
+            'category': '攻击',
             'requires_target': True,
             'can_fail': True
         }
@@ -272,7 +278,7 @@ class SearchFunction(GameFunction):
         self.name = "search"
         self.description = "搜索指定目标或区域"
         self.metadata = {
-            'category': 'search',
+            'category': '搜索',
             'requires_target': False,
             'can_fail': True
         }
@@ -322,7 +328,7 @@ class DialogueFunction(GameFunction):
         self.name = "dialogue"
         self.description = "与NPC或其他角色对话"
         self.metadata = {
-            'category': 'dialogue',
+            'category': '对话',
             'requires_target': True,
             'can_fail': False
         }
@@ -402,7 +408,7 @@ class TradeFunction(GameFunction):
         self.name = "trade"
         self.description = "与商人交易或购买物品"
         self.metadata = {
-            'category': 'trade',
+            'category': '交易',
             'requires_target': True,
             'can_fail': True
         }
@@ -474,7 +480,7 @@ class StatusFunction(GameFunction):
         self.name = "status"
         self.description = "查看玩家状态信息"
         self.metadata = {
-            'category': 'status',
+            'category': '状态查询',
             'requires_target': False,
             'can_fail': False
         }
@@ -509,6 +515,169 @@ class StatusFunction(GameFunction):
         )
 
 
+class MovementFunction(GameFunction):
+    """移动函数实现"""
+    
+    def __init__(self):
+        self.name = "movement"
+        self.description = "移动到指定地点或方向"
+        self.metadata = {
+            'category': '移动',
+            'requires_target': True,
+            'can_fail': True
+        }
+    
+    def can_execute(self, intent: Intent, game_state: 'GameState') -> bool:
+        """检查是否可以执行移动"""
+        return intent.category == "移动"
+    
+    def execute(self, intent: Intent, game_state: GameState, 
+                transaction: StateTransaction) -> ExecutionResult:
+        """执行移动"""
+        target = intent.target or "未指定方向"
+        
+        if intent.target in ["未指定", ""]:
+            return ExecutionResult(
+                success=False,
+                action_taken=f"尝试移动",
+                failure_reason="需要指定移动目标或方向",
+                state_changes=[],
+                dice_results=[]
+            )
+        
+        # 简化的移动实现
+        return ExecutionResult(
+            success=True,
+            action_taken=f"向{target}移动",
+            state_changes=[],
+            dice_results=[],
+            metadata={"requires_ai_content": True, "movement_target": target}
+        )
+
+
+class InteractionFunction(GameFunction):
+    """交互函数实现"""
+    
+    def __init__(self):
+        self.name = "interaction"
+        self.description = "与环境物体交互"
+        self.metadata = {
+            'category': '交互',
+            'requires_target': False,
+            'can_fail': True
+        }
+    
+    def can_execute(self, intent: Intent, game_state: 'GameState') -> bool:
+        """检查是否可以执行交互"""
+        return intent.category == "交互"
+    
+    def execute(self, intent: Intent, game_state: GameState, 
+                transaction: StateTransaction) -> ExecutionResult:
+        """执行交互"""
+        target = intent.target or "周围物体"
+        
+        # 交互检定
+        interaction_roll = DiceRoll(
+            name="交互检定",
+            dice_type="1d20",
+            result=random.randint(1, 20),
+            modifier=0
+        )
+        
+        success = interaction_roll.result >= 12  # DC 12
+        
+        if success:
+            return ExecutionResult(
+                success=True,
+                action_taken=f"成功与{target}交互",
+                state_changes=[],
+                dice_results=[interaction_roll],
+                metadata={"requires_ai_content": True, "interaction_target": target}
+            )
+        else:
+            return ExecutionResult(
+                success=False,
+                action_taken=f"尝试与{target}交互",
+                failure_reason=f"交互失败，{target}没有反应",
+                state_changes=[],
+                dice_results=[interaction_roll]
+            )
+
+
+class SkillFunction(GameFunction):
+    """技能函数实现"""
+    
+    def __init__(self):
+        self.name = "skill"
+        self.description = "使用各种技能和法术"
+        self.metadata = {
+            'category': '技能',
+            'requires_target': False,
+            'can_fail': True
+        }
+    
+    def can_execute(self, intent: Intent, game_state: 'GameState') -> bool:
+        """检查是否可以执行技能"""
+        return intent.category == "技能"
+    
+    def execute(self, intent: Intent, game_state: GameState, 
+                transaction: StateTransaction) -> ExecutionResult:
+        """执行技能"""
+        skill_name = intent.action
+        target = intent.target or "未指定"
+        
+        # 技能检定
+        skill_roll = DiceRoll(
+            name="技能检定",
+            dice_type="1d20",
+            result=random.randint(1, 20),
+            modifier=2  # 基础技能加成
+        )
+        
+        success = skill_roll.result >= 10  # DC 10
+        
+        if success:
+            # 根据技能类型可能需要状态变更
+            state_changes = []
+            
+            # 如果是治疗类技能，恢复生命值
+            if any(word in skill_name.lower() for word in ["治疗", "恢复", "医疗"]):
+                heal_amount = random.randint(1, 8) + 2
+                new_hp = min(game_state.player_state.max_hp, 
+                           game_state.player_state.hp + heal_amount)
+                
+                if new_hp > game_state.player_state.hp:
+                    hp_change = StateChange(
+                        target="player",
+                        action="modify",
+                        property="hp",
+                        value=new_hp,
+                        old_value=game_state.player_state.hp
+                    )
+                    transaction.add_change(hp_change)
+                    state_changes = [hp_change]
+            
+            return ExecutionResult(
+                success=True,
+                action_taken=f"成功施放{skill_name}",
+                state_changes=state_changes,
+                dice_results=[skill_roll],
+                metadata={
+                    "requires_ai_content": True, 
+                    "skill_name": skill_name,
+                    "skill_target": target
+                }
+            )
+        else:
+            return ExecutionResult(
+                success=False,
+                action_taken=f"尝试施放{skill_name}",
+                failure_reason=f"技能施放失败",
+                state_changes=[],
+                dice_results=[skill_roll]
+            )
+
+
 class RealExecutionEngine(ExecutionEngine):
     """真实的执行引擎实现"""
     
@@ -526,6 +695,9 @@ class RealExecutionEngine(ExecutionEngine):
         self.registry.register(DialogueFunction())
         self.registry.register(TradeFunction())
         self.registry.register(StatusFunction())
+        self.registry.register(MovementFunction())
+        self.registry.register(InteractionFunction())
+        self.registry.register(SkillFunction())
     
     def process(self, intent: Intent, game_state: GameState) -> ExecutionResult:
         """执行意图"""
@@ -604,7 +776,7 @@ class RealExecutionEngine(ExecutionEngine):
     
     def get_supported_categories(self) -> List[str]:
         """获取支持的意图分类"""
-        return ["攻击", "搜索", "对话", "交易", "状态查询", "移动", "其他"]
+        return ["攻击", "搜索", "对话", "交易", "移动", "状态查询", "交互", "技能", "其他"]
     
     def clear_history(self):
         """清空执行历史"""

@@ -8,9 +8,11 @@
 import os
 import sys
 import time
+import functools
+import inspect
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
+from typing import List, Dict, Any, Optional, Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 
 # 添加项目根目录到路径
@@ -20,6 +22,101 @@ sys.path.append(str(project_root))
 from testing.common.logger import TestLogger
 from testing.common.ai_setup import AISetupHelper
 from testing.common.interactive_ui import InteractiveUI
+
+@dataclass
+class CallTrace:
+    """函数调用跟踪记录"""
+    function_name: str
+    module_name: str
+    args: List[Any] = field(default_factory=list)
+    kwargs: Dict[str, Any] = field(default_factory=dict)
+    return_value: Any = None
+    execution_time: float = 0.0
+    timestamp: float = 0.0
+    success: bool = True
+    error: str = ""
+
+class CallTracer:
+    """函数调用跟踪器"""
+    
+    def __init__(self, enabled: bool = True):
+        self.enabled = enabled
+        self.call_stack: List[CallTrace] = []
+        self.depth = 0
+    
+    def trace_calls(self, func: Callable) -> Callable:
+        """装饰器：跟踪函数调用"""
+        if not self.enabled:
+            return func
+            
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # 开始跟踪
+            trace = CallTrace(
+                function_name=func.__name__,
+                module_name=func.__module__,
+                args=self._serialize_args(args),
+                kwargs=self._serialize_kwargs(kwargs),
+                timestamp=time.time()
+            )
+            
+            self.depth += 1
+            start_time = time.time()
+            
+            try:
+                result = func(*args, **kwargs)
+                trace.return_value = self._serialize_value(result)
+                trace.success = True
+                return result
+            except Exception as e:
+                trace.success = False
+                trace.error = str(e)
+                raise
+            finally:
+                trace.execution_time = time.time() - start_time
+                self.call_stack.append(trace)
+                self.depth -= 1
+                
+        return wrapper
+    
+    def _serialize_args(self, args) -> List[Any]:
+        """序列化参数"""
+        return [self._serialize_value(arg) for arg in args]
+    
+    def _serialize_kwargs(self, kwargs) -> Dict[str, Any]:
+        """序列化关键字参数"""
+        return {k: self._serialize_value(v) for k, v in kwargs.items()}
+    
+    def _serialize_value(self, value) -> Any:
+        """序列化值"""
+        if value is None:
+            return None
+        elif isinstance(value, (str, int, float, bool)):
+            return value
+        elif isinstance(value, (list, tuple)):
+            return f"<{type(value).__name__}[{len(value)}]>"
+        elif isinstance(value, dict):
+            return f"<dict[{len(value)}]>"
+        else:
+            return f"<{type(value).__name__}>"
+    
+    def get_call_summary(self) -> List[Dict[str, Any]]:
+        """获取调用摘要"""
+        return [
+            {
+                "函数": f"{trace.module_name.split('.')[-1]}.{trace.function_name}",
+                "参数": f"args={trace.args}, kwargs={trace.kwargs}",
+                "返回": str(trace.return_value)[:100] + "..." if len(str(trace.return_value)) > 100 else str(trace.return_value),
+                "耗时": f"{trace.execution_time:.3f}s",
+                "状态": "✅" if trace.success else f"❌ {trace.error}"
+            }
+            for trace in self.call_stack
+        ]
+    
+    def clear(self):
+        """清空调用栈"""
+        self.call_stack.clear()
+        self.depth = 0
 
 @dataclass
 class TestModule:
@@ -37,6 +134,7 @@ class InteractiveTestRunner:
         self.ui = InteractiveUI()
         self.logger = TestLogger()
         self.ai_helper = AISetupHelper()
+        self.call_tracer = CallTracer(enabled=True)
         
         # 定义可用的测试模块
         self.modules = [
@@ -229,7 +327,14 @@ class InteractiveTestRunner:
     def run_execution_engine_test(self, session):
         """运行执行引擎测试"""
         self.ui.show_message("⚙️ 执行引擎测试")
-        self.ui.show_message("测试游戏逻辑的执行正确性和状态管理")
+        self.ui.show_message("连续测试模式 - 测试完整的意图→执行→结果流程")
+        self.ui.show_message("支持所有类别：攻击、搜索、对话、交易、移动、状态查询、交互、技能")
+        print("测试示例:")
+        print("  • 攻击类: '攻击哥布林', '攻击' (无目标测试)")
+        print("  • 搜索类: '搜索宝箱', '探索房间'")
+        print("  • 技能类: '施放火球术', '治疗术' (测试状态变更)")
+        print("  • 交互类: '撬锁', '开门'")
+        print("  • 移动类: '去村庄', '向北走'")
         self.ui.show_message("输入 'quit'、'exit'、'done' 或 '退出' 结束测试")
         print()
         
@@ -249,10 +354,45 @@ class InteractiveTestRunner:
                 continue
             
             test_count += 1
+            
+            # 显示当前测试
             self.ui.show_message(f"\n--- 测试用例 #{test_count} ---")
-            self.ui.show_message("⚙️ 执行引擎测试 - 开发中...")
+            self.ui.show_message(f"输入: {user_input}")
+            
+            # 执行完整的意图→执行流程测试
+            start_time = time.time()
+            self.call_tracer.clear()  # 清空之前的调用栈
+            result = self._execute_full_pipeline_test_with_tracing(user_input)
+            execution_time = time.time() - start_time
+            
+            # 显示结果
+            self.ui.show_result("执行引擎测试结果", result)
+            
+            # 显示调用栈
+            call_summary = self.call_tracer.get_call_summary()
+            if call_summary:
+                print("\n📋 函数调用栈:")
+                for i, call in enumerate(call_summary, 1):
+                    print(f"  {i}. {call['函数']}")
+                    print(f"     入参: {call['参数']}")
+                    print(f"     出参: {call['返回']}")
+                    print(f"     耗时: {call['耗时']} | {call['状态']}")
+                    print()
+            
+            # 记录日志
+            self.logger.log_test(
+                session=session,
+                test_case=f"执行引擎_{test_count}",
+                user_input=user_input,
+                system_output=str(result),
+                execution_time=execution_time,
+                success=result.get('success', False),
+                metadata=result
+            )
+            
+            # 显示分隔线
             print("─" * 60)
-        
+            
         if test_count > 0:
             self.ui.show_message(f"\n⚙️ 本轮测试统计: 共 {test_count} 个用例")
     
@@ -399,6 +539,160 @@ class InteractiveTestRunner:
                 "target": "未知",
                 "confidence": 0.0,
                 "processing_time": 0.0
+            }
+    
+    def _execute_full_pipeline_test(self, user_input: str) -> Dict[str, Any]:
+        """执行完整的意图→执行流程测试"""
+        try:
+            # Step 1: 意图识别
+            intent_result = self._execute_intent_classification(user_input)
+            if not intent_result.get('success'):
+                return {
+                    "success": False,
+                    "执行阶段": "意图识别失败",
+                    "error": f"意图识别失败: {intent_result.get('error')}",
+                    "意图识别结果": intent_result
+                }
+            
+            # Step 2: 创建Intent对象
+            from Agent.interfaces.data_structures import Intent, IntentType
+            intent = Intent(
+                type=IntentType.EXECUTION,
+                category=intent_result.get('intent_category', '其他'),
+                action=intent_result.get('action', user_input),
+                target=intent_result.get('target', '')
+            )
+            
+            # Step 3: 创建执行引擎和游戏状态
+            from Agent.implementations.execution_engine import RealExecutionEngine
+            from Agent.implementations.game_state import RealGameState
+            
+            execution_engine = RealExecutionEngine()
+            game_state = RealGameState()
+            
+            # Step 4: 执行意图
+            execution_result = execution_engine.process(intent, game_state)
+            
+            # Step 5: 格式化结果
+            result = {
+                "success": True,
+                "执行阶段": "完成",
+                "意图类别": intent.category,
+                "意图目标": intent.target,
+                "意图动作": intent.action,
+                "执行成功": "是" if execution_result.success else "否",
+                "执行行动": execution_result.action_taken,
+                "状态变更数": len(execution_result.state_changes),
+                "骰子次数": len(execution_result.dice_results),
+                "需要AI内容": "是" if (execution_result.metadata.get("requires_ai_content", False) if execution_result.metadata else False) else "否"
+            }
+            
+            if not execution_result.success:
+                result["失败原因"] = execution_result.failure_reason
+            
+            if execution_result.dice_results:
+                result["骰子详情"] = [
+                    f"{dice.name}: {dice.result}+{dice.modifier}={dice.total}"
+                    for dice in execution_result.dice_results
+                ]
+            
+            if execution_result.state_changes:
+                result["状态变更详情"] = [
+                    f"{change.target}.{change.property}: {change.old_value}→{change.value}"
+                    for change in execution_result.state_changes
+                ]
+            
+            return result
+            
+        except Exception as e:
+            import traceback
+            return {
+                "success": False,
+                "执行阶段": "执行引擎错误",
+                "error": str(e),
+                "错误详情": traceback.format_exc()
+            }
+    
+    def _execute_full_pipeline_test_with_tracing(self, user_input: str) -> Dict[str, Any]:
+        """执行完整的意图→执行流程测试（带调用跟踪）"""
+        try:
+            # Step 1: 意图识别（带跟踪）
+            intent_result = self.call_tracer.trace_calls(self._execute_intent_classification)(user_input)
+            if not intent_result.get('success'):
+                return {
+                    "success": False,
+                    "执行阶段": "意图识别失败",
+                    "error": f"意图识别失败: {intent_result.get('error')}",
+                    "意图识别结果": intent_result
+                }
+            
+            # Step 2: 创建Intent对象
+            from Agent.interfaces.data_structures import Intent, IntentType
+            intent = Intent(
+                type=IntentType.EXECUTION,
+                category=intent_result.get('intent_category', '其他'),
+                action=intent_result.get('action', user_input),
+                target=intent_result.get('target', '')
+            )
+            
+            # Step 3: 创建执行引擎和游戏状态
+            from Agent.implementations.execution_engine import RealExecutionEngine
+            from Agent.implementations.game_state import RealGameState
+            
+            execution_engine = RealExecutionEngine()
+            game_state = RealGameState()
+            
+            # 动态应用跟踪装饰器到执行引擎的关键方法
+            execution_engine.process = self.call_tracer.trace_calls(execution_engine.process)
+            
+            # 查找并跟踪对应的Function
+            functions = execution_engine.registry.find_functions_by_intent(intent)
+            if functions:
+                func = functions[0]
+                func.execute = self.call_tracer.trace_calls(func.execute)
+                func.can_execute = self.call_tracer.trace_calls(func.can_execute)
+            
+            # Step 4: 执行意图（现在会被跟踪）
+            execution_result = execution_engine.process(intent, game_state)
+            
+            # Step 5: 格式化结果
+            result = {
+                "success": True,
+                "执行阶段": "完成",
+                "意图类别": intent.category,
+                "意图目标": intent.target,
+                "意图动作": intent.action,
+                "执行成功": "是" if execution_result.success else "否",
+                "执行行动": execution_result.action_taken,
+                "状态变更数": len(execution_result.state_changes),
+                "骰子次数": len(execution_result.dice_results),
+                "需要AI内容": "是" if (execution_result.metadata.get("requires_ai_content", False) if execution_result.metadata else False) else "否"
+            }
+            
+            if not execution_result.success:
+                result["失败原因"] = execution_result.failure_reason
+            
+            if execution_result.dice_results:
+                result["骰子详情"] = [
+                    f"{dice.name}: {dice.result}+{dice.modifier}={dice.total}"
+                    for dice in execution_result.dice_results
+                ]
+            
+            if execution_result.state_changes:
+                result["状态变更详情"] = [
+                    f"{change.target}.{change.property}: {change.old_value}→{change.value}"
+                    for change in execution_result.state_changes
+                ]
+            
+            return result
+            
+        except Exception as e:
+            import traceback
+            return {
+                "success": False,
+                "执行阶段": "执行引擎错误",
+                "error": str(e),
+                "错误详情": traceback.format_exc()
             }
     
     def analyze_session_results(self, module: TestModule, session):
